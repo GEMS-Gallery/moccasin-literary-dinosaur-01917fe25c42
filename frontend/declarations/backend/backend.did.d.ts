@@ -8,11 +8,13 @@ export interface File {
   'size' : bigint,
   'uploadTime' : Time,
 }
-export type Result = { 'ok' : null } |
+export type Result = { 'ok' : File } |
+  { 'err' : string };
+export type Result_1 = { 'ok' : null } |
   { 'err' : string };
 export type Time = bigint;
 export interface _SERVICE {
-  'deleteFile' : ActorMethod<[string], Result>,
+  'deleteFile' : ActorMethod<[string], Result_1>,
   'listFiles' : ActorMethod<[], Array<File>>,
   'uploadFile' : ActorMethod<[string, Uint8Array | number[]], Result>,
 }

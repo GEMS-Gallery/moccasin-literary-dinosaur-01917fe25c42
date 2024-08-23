@@ -1,8 +1,13 @@
 type Time = int;
-type Result = 
+type Result_1 = 
  variant {
    err: text;
    ok;
+ };
+type Result = 
+ variant {
+   err: text;
+   ok: File;
  };
 type File = 
  record {
@@ -12,7 +17,7 @@ type File =
    uploadTime: Time;
  };
 service : {
-  deleteFile: (text) -> (Result);
+  deleteFile: (text) -> (Result_1);
   listFiles: () -> (vec File);
   uploadFile: (text, blob) -> (Result);
 }

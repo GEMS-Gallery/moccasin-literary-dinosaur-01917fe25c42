@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { backend } from 'declarations/backend';
-import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box } from '@mui/material';
-import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon } from '@mui/icons-material';
+import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, CircularProgress } from '@mui/material';
+import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
 import { styled } from '@mui/system';
 
 const DropZone = styled('div')(({ theme }) => ({
@@ -18,9 +18,15 @@ const DropZone = styled('div')(({ theme }) => ({
   },
 }));
 
+interface File {
+  name: string;
+  size: bigint;
+  uploadTime: bigint;
+}
+
 const App: React.FC = () => {
   const { login, logout, isAuthenticated } = useAuth();
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -47,8 +53,10 @@ const App: React.FC = () => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const content = new Uint8Array(e.target?.result as ArrayBuffer);
-        await backend.uploadFile(file.name, content);
-        await fetchFiles();
+        const result = await backend.uploadFile(file.name, content);
+        if ('ok' in result) {
+          setFiles(prevFiles => [...prevFiles, result.ok]);
+        }
       };
       reader.readAsArrayBuffer(file);
     } catch (error) {
@@ -61,18 +69,17 @@ const App: React.FC = () => {
   const handleDeleteFile = async (fileName: string) => {
     try {
       await backend.deleteFile(fileName);
-      await fetchFiles();
+      setFiles(prevFiles => prevFiles.filter(file => file.name !== fileName));
     } catch (error) {
       console.error('Error deleting file:', error);
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
+  const formatFileSize = (bytes: bigint) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    if (bytes === BigInt(0)) return '0 Byte';
+    const i = parseInt(Math.floor(Math.log(Number(bytes)) / Math.log(1024)).toString());
+    return Math.round(Number(bytes) / Math.pow(1024, i)) + ' ' + sizes[i];
   };
 
   return (
@@ -105,15 +112,17 @@ const App: React.FC = () => {
                 {uploading ? 'Uploading...' : 'Upload File'}
               </Button>
             </label>
+            {uploading && <CircularProgress size={24} sx={{ ml: 2 }} />}
             <DropZone>
               <Typography>Drag and drop files here or click the Upload button</Typography>
             </DropZone>
             <List>
-              {files.map((file: any) => (
+              {files.map((file: File) => (
                 <ListItem key={file.name}>
+                  <FileIcon sx={{ mr: 2 }} />
                   <ListItemText
                     primary={file.name}
-                    secondary={`Size: ${formatFileSize(Number(file.size))}`}
+                    secondary={`Size: ${formatFileSize(file.size)} | Uploaded: ${new Date(Number(file.uploadTime) / 1000000).toLocaleString()}`}
                   />
                   <ListItemSecondaryAction>
                     <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteFile(file.name)}>
