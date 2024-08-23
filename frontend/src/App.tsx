@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { backend } from 'declarations/backend';
-import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, CircularProgress } from '@mui/material';
-import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
+import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, LinearProgress } from '@mui/material';
+import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, InsertDriveFile as FileIcon, Image as ImageIcon } from '@mui/icons-material';
 import { styled } from '@mui/system';
 
 const DropZone = styled('div')(({ theme }) => ({
@@ -18,16 +18,25 @@ const DropZone = styled('div')(({ theme }) => ({
   },
 }));
 
+const Thumbnail = styled('img')({
+  width: '50px',
+  height: '50px',
+  objectFit: 'cover',
+  marginRight: '16px',
+});
+
 interface File {
   name: string;
   size: bigint;
   uploadTime: bigint;
+  thumbnailUrl?: string;
 }
 
 const App: React.FC = () => {
   const { login, logout, isAuthenticated } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -49,21 +58,49 @@ const App: React.FC = () => {
     if (!file) return;
 
     setUploading(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const content = new Uint8Array(e.target?.result as ArrayBuffer);
-        const result = await backend.uploadFile(file.name, content);
-        if ('ok' in result) {
-          setFiles(prevFiles => [...prevFiles, result.ok]);
+    setUploadProgress(0);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload', true);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const progress = (event.loaded / event.total) * 100;
+        setUploadProgress(progress);
+      }
+    };
+
+    xhr.onload = async () => {
+      if (xhr.status === 200) {
+        try {
+          const content = new Uint8Array(xhr.response);
+          let thumbnailUrl = null;
+          if (file.type.startsWith('image/')) {
+            thumbnailUrl = URL.createObjectURL(file);
+          }
+          const result = await backend.uploadFile(file.name, content, thumbnailUrl);
+          if ('ok' in result) {
+            setFiles(prevFiles => [...prevFiles, result.ok]);
+          }
+        } catch (error) {
+          console.error('Error uploading file:', error);
         }
-      };
-      reader.readAsArrayBuffer(file);
-    } catch (error) {
-      console.error('Error uploading file:', error);
-    } finally {
+      } else {
+        console.error('Upload failed');
+      }
       setUploading(false);
-    }
+      setUploadProgress(0);
+    };
+
+    xhr.onerror = () => {
+      console.error('Upload failed');
+      setUploading(false);
+      setUploadProgress(0);
+    };
+
+    const formData = new FormData();
+    formData.append('file', file);
+    xhr.send(formData);
   };
 
   const handleDeleteFile = async (fileName: string) => {
@@ -112,14 +149,26 @@ const App: React.FC = () => {
                 {uploading ? 'Uploading...' : 'Upload File'}
               </Button>
             </label>
-            {uploading && <CircularProgress size={24} sx={{ ml: 2 }} />}
+            {uploading && (
+              <Box sx={{ width: '100%', mt: 2 }}>
+                <LinearProgress variant="determinate" value={uploadProgress} />
+              </Box>
+            )}
             <DropZone>
               <Typography>Drag and drop files here or click the Upload button</Typography>
             </DropZone>
             <List>
               {files.map((file: File) => (
                 <ListItem key={file.name}>
-                  <FileIcon sx={{ mr: 2 }} />
+                  {file.thumbnailUrl ? (
+                    <Thumbnail src={file.thumbnailUrl} alt={file.name} />
+                  ) : (
+                    file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.png') ? (
+                      <ImageIcon sx={{ mr: 2, fontSize: 40 }} />
+                    ) : (
+                      <FileIcon sx={{ mr: 2, fontSize: 40 }} />
+                    )
+                  )}
                   <ListItemText
                     primary={file.name}
                     secondary={`Size: ${formatFileSize(file.size)} | Uploaded: ${new Date(Number(file.uploadTime) / 1000000).toLocaleString()}`}
