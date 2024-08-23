@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { backend } from 'declarations/backend';
-import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, LinearProgress } from '@mui/material';
-import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
+import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, LinearProgress, Snackbar } from '@mui/material';
+import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, InsertDriveFile as FileIcon, GetApp as DownloadIcon } from '@mui/icons-material';
 import { styled } from '@mui/system';
 
 const DropZone = styled('div')(({ theme }) => ({
@@ -28,13 +28,15 @@ interface File {
   name: string;
   size: bigint;
   uploadTime: bigint;
-  thumbnailUrl?: string;
+  content: Uint8Array;
 }
 
 const Dashboard: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   useEffect(() => {
     fetchFiles();
@@ -46,6 +48,7 @@ const Dashboard: React.FC = () => {
       setFiles(fileList);
     } catch (error) {
       console.error('Error fetching files:', error);
+      showSnackbar('Error fetching files');
     }
   };
 
@@ -60,13 +63,10 @@ const Dashboard: React.FC = () => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const content = new Uint8Array(e.target?.result as ArrayBuffer);
-        let thumbnailUrl = null;
-        if (file.type.startsWith('image/')) {
-          thumbnailUrl = URL.createObjectURL(file);
-        }
-        const result = await backend.uploadFile(file.name, content, thumbnailUrl);
+        const result = await backend.uploadFile(file.name, content);
         if ('ok' in result) {
           setFiles(prevFiles => [...prevFiles, result.ok]);
+          showSnackbar('File uploaded successfully');
         }
         setUploading(false);
         setUploadProgress(100);
@@ -80,6 +80,7 @@ const Dashboard: React.FC = () => {
       reader.readAsArrayBuffer(file);
     } catch (error) {
       console.error('Error uploading file:', error);
+      showSnackbar('Error uploading file');
       setUploading(false);
       setUploadProgress(0);
     }
@@ -89,8 +90,32 @@ const Dashboard: React.FC = () => {
     try {
       await backend.deleteFile(fileName);
       setFiles(prevFiles => prevFiles.filter(file => file.name !== fileName));
+      showSnackbar('File deleted successfully');
     } catch (error) {
       console.error('Error deleting file:', error);
+      showSnackbar('Error deleting file');
+    }
+  };
+
+  const handleDownloadFile = async (fileName: string) => {
+    try {
+      const result = await backend.downloadFile(fileName);
+      if ('ok' in result) {
+        const file = result.ok;
+        const blob = new Blob([file.content]);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showSnackbar('File downloaded successfully');
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      showSnackbar('Error downloading file');
     }
   };
 
@@ -99,6 +124,11 @@ const Dashboard: React.FC = () => {
     if (bytes === BigInt(0)) return '0 Byte';
     const i = parseInt(Math.floor(Math.log(Number(bytes)) / Math.log(1024)).toString());
     return Math.round(Number(bytes) / Math.pow(1024, i)) + ' ' + sizes[i];
+  };
+
+  const showSnackbar = (message: string) => {
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
   };
 
   return (
@@ -137,16 +167,15 @@ const Dashboard: React.FC = () => {
         <List>
           {files.map((file: File) => (
             <ListItem key={file.name}>
-              {file.thumbnailUrl ? (
-                <Thumbnail src={file.thumbnailUrl} alt={file.name} />
-              ) : (
-                <FileIcon sx={{ mr: 2, fontSize: 40 }} />
-              )}
+              <FileIcon sx={{ mr: 2, fontSize: 40 }} />
               <ListItemText
                 primary={file.name}
                 secondary={`Size: ${formatFileSize(file.size)} | Uploaded: ${new Date(Number(file.uploadTime) / 1000000).toLocaleString()}`}
               />
               <ListItemSecondaryAction>
+                <IconButton edge="end" aria-label="download" onClick={() => handleDownloadFile(file.name)}>
+                  <DownloadIcon />
+                </IconButton>
                 <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteFile(file.name)}>
                   <DeleteIcon />
                 </IconButton>
@@ -155,6 +184,12 @@ const Dashboard: React.FC = () => {
           ))}
         </List>
       </Box>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
     </Container>
   );
 };

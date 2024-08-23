@@ -17,20 +17,18 @@ actor {
     content: Blob;
     size: Nat;
     uploadTime: Time.Time;
-    thumbnailUrl: ?Text;
   };
 
   stable var userFilesEntries : [(Principal, [(Text, File)])] = [];
   var userFiles = HashMap.HashMap<Principal, HashMap.HashMap<Text, File>>(0, Principal.equal, Principal.hash);
 
-  public shared(msg) func uploadFile(name: Text, content: Blob, thumbnailUrl: ?Text) : async Result.Result<File, Text> {
+  public shared(msg) func uploadFile(name: Text, content: Blob) : async Result.Result<File, Text> {
     let caller = msg.caller;
     let file : File = {
       name = name;
       content = content;
       size = Blob.toArray(content).size();
       uploadTime = Time.now();
-      thumbnailUrl = thumbnailUrl;
     };
 
     switch (userFiles.get(caller)) {
@@ -65,6 +63,19 @@ actor {
         switch (files.remove(name)) {
           case null { #err("File not found") };
           case _ { #ok(()) };
+        }
+      };
+    }
+  };
+
+  public shared(msg) func downloadFile(name: Text) : async Result.Result<File, Text> {
+    let caller = msg.caller;
+    switch (userFiles.get(caller)) {
+      case null { #err("User has no files") };
+      case (?files) {
+        switch (files.get(name)) {
+          case null { #err("File not found") };
+          case (?file) { #ok(file) };
         }
       };
     }
