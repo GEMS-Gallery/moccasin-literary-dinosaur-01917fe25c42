@@ -3,7 +3,6 @@ export const idlFactory = ({ IDL }) => {
   const Time = IDL.Int;
   const File = IDL.Record({
     'content' : IDL.Vec(IDL.Nat8),
-    'thumbnailUrl' : IDL.Opt(IDL.Text),
     'name' : IDL.Text,
     'size' : IDL.Nat,
     'uploadTime' : Time,
@@ -12,11 +11,7 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     'deleteFile' : IDL.Func([IDL.Text], [Result_1], []),
     'listFiles' : IDL.Func([], [IDL.Vec(File)], []),
-    'uploadFile' : IDL.Func(
-        [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Text)],
-        [Result],
-        [],
-      ),
+    'uploadFile' : IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result], []),
   });
 };
 export const init = ({ IDL }) => { return []; };

@@ -4,7 +4,6 @@ import type { IDL } from '@dfinity/candid';
 
 export interface File {
   'content' : Uint8Array | number[],
-  'thumbnailUrl' : [] | [string],
   'name' : string,
   'size' : bigint,
   'uploadTime' : Time,
@@ -17,10 +16,7 @@ export type Time = bigint;
 export interface _SERVICE {
   'deleteFile' : ActorMethod<[string], Result_1>,
   'listFiles' : ActorMethod<[], Array<File>>,
-  'uploadFile' : ActorMethod<
-    [string, Uint8Array | number[], [] | [string]],
-    Result
-  >,
+  'uploadFile' : ActorMethod<[string, Uint8Array | number[]], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];
