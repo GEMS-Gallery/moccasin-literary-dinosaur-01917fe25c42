@@ -17,6 +17,7 @@ actor {
     content: Blob;
     size: Nat;
     uploadTime: Time.Time;
+    sharedWith: [Principal];
   };
 
   stable var userFilesEntries : [(Principal, [(Text, File)])] = [];
@@ -29,6 +30,7 @@ actor {
       content = content;
       size = Blob.toArray(content).size();
       uploadTime = Time.now();
+      sharedWith = [];
     };
 
     switch (userFiles.get(caller)) {
@@ -47,12 +49,24 @@ actor {
 
   public shared(msg) func listFiles() : async [File] {
     let caller = msg.caller;
+    var allFiles : [File] = [];
+
     switch (userFiles.get(caller)) {
-      case null { [] };
+      case null { allFiles := [] };
       case (?files) {
-        Iter.toArray(files.vals())
+        allFiles := Iter.toArray(files.vals());
       };
-    }
+    };
+
+    for ((_, files) in userFiles.entries()) {
+      for ((_, file) in files.entries()) {
+        if (Array.find<Principal>(file.sharedWith, func(p) { p == caller }) != null) {
+          allFiles := Array.append(allFiles, [file]);
+        };
+      };
+    };
+
+    allFiles
   };
 
   public shared(msg) func deleteFile(name: Text) : async Result.Result<(), Text> {
@@ -76,6 +90,29 @@ actor {
         switch (files.get(name)) {
           case null { #err("File not found") };
           case (?file) { #ok(file) };
+        }
+      };
+    }
+  };
+
+  public shared(msg) func shareFile(name: Text, recipient: Principal) : async Result.Result<(), Text> {
+    let caller = msg.caller;
+    switch (userFiles.get(caller)) {
+      case null { #err("User has no files") };
+      case (?files) {
+        switch (files.get(name)) {
+          case null { #err("File not found") };
+          case (?file) {
+            let updatedFile : File = {
+              name = file.name;
+              content = file.content;
+              size = file.size;
+              uploadTime = file.uploadTime;
+              sharedWith = Array.append<Principal>(file.sharedWith, [recipient]);
+            };
+            files.put(name, updatedFile);
+            #ok(())
+          };
         }
       };
     }

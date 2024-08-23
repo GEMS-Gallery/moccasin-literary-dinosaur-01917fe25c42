@@ -6,6 +6,7 @@ export interface File {
   'content' : Uint8Array | number[],
   'name' : string,
   'size' : bigint,
+  'sharedWith' : Array<Principal>,
   'uploadTime' : Time,
 }
 export type Result = { 'ok' : File } |
@@ -17,6 +18,7 @@ export interface _SERVICE {
   'deleteFile' : ActorMethod<[string], Result_1>,
   'downloadFile' : ActorMethod<[string], Result>,
   'listFiles' : ActorMethod<[], Array<File>>,
+  'shareFile' : ActorMethod<[string, Principal], Result_1>,
   'uploadFile' : ActorMethod<[string, Uint8Array | number[]], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

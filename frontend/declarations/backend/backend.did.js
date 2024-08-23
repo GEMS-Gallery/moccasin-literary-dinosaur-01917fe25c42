@@ -5,6 +5,7 @@ export const idlFactory = ({ IDL }) => {
     'content' : IDL.Vec(IDL.Nat8),
     'name' : IDL.Text,
     'size' : IDL.Nat,
+    'sharedWith' : IDL.Vec(IDL.Principal),
     'uploadTime' : Time,
   });
   const Result = IDL.Variant({ 'ok' : File, 'err' : IDL.Text });
@@ -12,6 +13,7 @@ export const idlFactory = ({ IDL }) => {
     'deleteFile' : IDL.Func([IDL.Text], [Result_1], []),
     'downloadFile' : IDL.Func([IDL.Text], [Result], []),
     'listFiles' : IDL.Func([], [IDL.Vec(File)], []),
+    'shareFile' : IDL.Func([IDL.Text, IDL.Principal], [Result_1], []),
     'uploadFile' : IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result], []),
   });
 };

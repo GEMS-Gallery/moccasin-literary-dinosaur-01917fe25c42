@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { backend } from 'declarations/backend';
-import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, LinearProgress, Snackbar } from '@mui/material';
-import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, GetApp as DownloadIcon } from '@mui/icons-material';
+import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, LinearProgress, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, GetApp as DownloadIcon, Share as ShareIcon } from '@mui/icons-material';
 import { styled } from '@mui/system';
 import FilePreview from './FilePreview';
 
@@ -23,6 +23,7 @@ interface File {
   size: bigint;
   uploadTime: bigint;
   content: Uint8Array;
+  sharedWith: string[];
 }
 
 const Dashboard: React.FC = () => {
@@ -31,6 +32,9 @@ const Dashboard: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [recipientId, setRecipientId] = useState('');
 
   useEffect(() => {
     fetchFiles();
@@ -113,6 +117,26 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleShareFile = (file: File) => {
+    setSelectedFile(file);
+    setShareDialogOpen(true);
+  };
+
+  const handleShareConfirm = async () => {
+    if (selectedFile && recipientId) {
+      try {
+        await backend.shareFile(selectedFile.name, recipientId);
+        showSnackbar('File shared successfully');
+        setShareDialogOpen(false);
+        setRecipientId('');
+        fetchFiles();
+      } catch (error) {
+        console.error('Error sharing file:', error);
+        showSnackbar('Error sharing file');
+      }
+    }
+  };
+
   const formatFileSize = (bytes: bigint) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     if (bytes === BigInt(0)) return '0 Byte';
@@ -158,8 +182,11 @@ const Dashboard: React.FC = () => {
         <DropZone>
           <Typography>Drag and drop files here or click the Upload button</Typography>
         </DropZone>
+        <Typography variant="h5" component="h2" gutterBottom>
+          Your Files
+        </Typography>
         <List>
-          {files.map((file: File) => (
+          {files.filter(file => !file.sharedWith.length).map((file: File) => (
             <ListItem key={file.name}>
               <FilePreview file={file} />
               <ListItemText
@@ -170,8 +197,30 @@ const Dashboard: React.FC = () => {
                 <IconButton edge="end" aria-label="download" onClick={() => handleDownloadFile(file.name)}>
                   <DownloadIcon />
                 </IconButton>
+                <IconButton edge="end" aria-label="share" onClick={() => handleShareFile(file)}>
+                  <ShareIcon />
+                </IconButton>
                 <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteFile(file.name)}>
                   <DeleteIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+          ))}
+        </List>
+        <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>
+          Shared Files
+        </Typography>
+        <List>
+          {files.filter(file => file.sharedWith.length > 0).map((file: File) => (
+            <ListItem key={file.name}>
+              <FilePreview file={file} />
+              <ListItemText
+                primary={file.name}
+                secondary={`Size: ${formatFileSize(file.size)} | Uploaded: ${new Date(Number(file.uploadTime) / 1000000).toLocaleString()} | Shared with: ${file.sharedWith.join(', ')}`}
+              />
+              <ListItemSecondaryAction>
+                <IconButton edge="end" aria-label="download" onClick={() => handleDownloadFile(file.name)}>
+                  <DownloadIcon />
                 </IconButton>
               </ListItemSecondaryAction>
             </ListItem>
@@ -184,6 +233,26 @@ const Dashboard: React.FC = () => {
         onClose={() => setSnackbarOpen(false)}
         message={snackbarMessage}
       />
+      <Dialog open={shareDialogOpen} onClose={() => setShareDialogOpen(false)}>
+        <DialogTitle>Share File</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="recipient"
+            label="Recipient's Public ID"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={recipientId}
+            onChange={(e) => setRecipientId(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShareDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleShareConfirm}>Share</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
