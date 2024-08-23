@@ -31,7 +31,7 @@ const Header: React.FC = () => {
             <Tooltip title="Copy your public ID">
               <Box sx={{ display: 'flex', alignItems: 'center', mr: 2, cursor: 'pointer' }} onClick={handleCopyPrincipal}>
                 <Typography variant="body2" sx={{ mr: 1 }}>
-                  {principal ? Principal.fromText(principal.toString()).toText().slice(0, 10) + '...' : ''}
+                  {principal ? Principal.fromText(principal.toString()).toText() : ''}
                 </Typography>
                 <IconButton color="inherit" size="small">
                   <ContentCopyIcon fontSize="small" />

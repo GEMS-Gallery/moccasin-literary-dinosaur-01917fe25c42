@@ -4,6 +4,7 @@ import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSe
 import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, GetApp as DownloadIcon, Share as ShareIcon } from '@mui/icons-material';
 import { styled } from '@mui/system';
 import FilePreview from './FilePreview';
+import { Principal } from '@dfinity/principal';
 
 const DropZone = styled('div')(({ theme }) => ({
   border: `2px dashed ${theme.palette.primary.main}`,
@@ -125,14 +126,15 @@ const Dashboard: React.FC = () => {
   const handleShareConfirm = async () => {
     if (selectedFile && recipientId) {
       try {
-        await backend.shareFile(selectedFile.name, recipientId);
+        const recipientPrincipal = Principal.fromText(recipientId);
+        await backend.shareFile(selectedFile.name, recipientPrincipal);
         showSnackbar('File shared successfully');
         setShareDialogOpen(false);
         setRecipientId('');
         fetchFiles();
       } catch (error) {
         console.error('Error sharing file:', error);
-        showSnackbar('Error sharing file');
+        showSnackbar('Error sharing file: Invalid recipient ID');
       }
     }
   };

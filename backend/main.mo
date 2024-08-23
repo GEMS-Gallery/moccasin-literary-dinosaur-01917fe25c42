@@ -103,6 +103,9 @@ actor {
         switch (files.get(name)) {
           case null { #err("File not found") };
           case (?file) {
+            if (Principal.isAnonymous(recipient)) {
+              return #err("Cannot share with anonymous principal");
+            };
             let updatedFile : File = {
               name = file.name;
               content = file.content;
