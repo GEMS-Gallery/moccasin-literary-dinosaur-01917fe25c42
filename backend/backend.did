@@ -14,10 +14,11 @@ type File =
    content: blob;
    name: text;
    size: nat;
+   thumbnailUrl: opt text;
    uploadTime: Time;
  };
 service : {
   deleteFile: (text) -> (Result_1);
   listFiles: () -> (vec File);
-  uploadFile: (text, blob) -> (Result);
+  uploadFile: (text, blob, opt text) -> (Result);
 }

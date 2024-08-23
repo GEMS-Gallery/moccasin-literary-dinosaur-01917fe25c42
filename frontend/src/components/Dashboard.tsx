@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { backend } from 'declarations/backend';
 import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, LinearProgress } from '@mui/material';
-import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, InsertDriveFile as FileIcon, Image as ImageIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
 import { styled } from '@mui/system';
 
 const DropZone = styled('div')(({ theme }) => ({
@@ -28,6 +28,7 @@ interface File {
   name: string;
   size: bigint;
   uploadTime: bigint;
+  thumbnailUrl?: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -59,7 +60,11 @@ const Dashboard: React.FC = () => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const content = new Uint8Array(e.target?.result as ArrayBuffer);
-        const result = await backend.uploadFile(file.name, content);
+        let thumbnailUrl = null;
+        if (file.type.startsWith('image/')) {
+          thumbnailUrl = URL.createObjectURL(file);
+        }
+        const result = await backend.uploadFile(file.name, content, thumbnailUrl);
         if ('ok' in result) {
           setFiles(prevFiles => [...prevFiles, result.ok]);
         }
@@ -132,8 +137,8 @@ const Dashboard: React.FC = () => {
         <List>
           {files.map((file: File) => (
             <ListItem key={file.name}>
-              {file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.png') ? (
-                <ImageIcon sx={{ mr: 2, fontSize: 40 }} />
+              {file.thumbnailUrl ? (
+                <Thumbnail src={file.thumbnailUrl} alt={file.name} />
               ) : (
                 <FileIcon sx={{ mr: 2, fontSize: 40 }} />
               )}
