@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { backend } from 'declarations/backend';
 import { Container, Typography, Button, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Box, LinearProgress, Snackbar } from '@mui/material';
-import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, InsertDriveFile as FileIcon, GetApp as DownloadIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, CloudUpload as CloudUploadIcon, GetApp as DownloadIcon } from '@mui/icons-material';
 import { styled } from '@mui/system';
+import FilePreview from './FilePreview';
 
 const DropZone = styled('div')(({ theme }) => ({
   border: `2px dashed ${theme.palette.primary.main}`,
@@ -16,13 +17,6 @@ const DropZone = styled('div')(({ theme }) => ({
     backgroundColor: theme.palette.action.hover,
   },
 }));
-
-const Thumbnail = styled('img')({
-  width: '50px',
-  height: '50px',
-  objectFit: 'cover',
-  marginRight: '16px',
-});
 
 interface File {
   name: string;
@@ -167,7 +161,7 @@ const Dashboard: React.FC = () => {
         <List>
           {files.map((file: File) => (
             <ListItem key={file.name}>
-              <FileIcon sx={{ mr: 2, fontSize: 40 }} />
+              <FilePreview file={file} />
               <ListItemText
                 primary={file.name}
                 secondary={`Size: ${formatFileSize(file.size)} | Uploaded: ${new Date(Number(file.uploadTime) / 1000000).toLocaleString()}`}
