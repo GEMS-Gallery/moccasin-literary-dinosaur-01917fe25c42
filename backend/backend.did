@@ -1,0 +1,18 @@
+type Time = int;
+type Result = 
+ variant {
+   err: text;
+   ok;
+ };
+type File = 
+ record {
+   content: blob;
+   name: text;
+   size: nat;
+   uploadTime: Time;
+ };
+service : {
+  deleteFile: (text) -> (Result);
+  listFiles: () -> (vec File);
+  uploadFile: (text, blob) -> (Result);
+}
