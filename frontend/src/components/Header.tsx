@@ -1,16 +1,23 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
-import { GitHub as GitHubIcon } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography, Button, Box, Tooltip, IconButton } from '@mui/material';
+import { GitHub as GitHubIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Principal } from '@dfinity/principal';
 
 const Header: React.FC = () => {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, principal } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleCopyPrincipal = () => {
+    if (principal) {
+      navigator.clipboard.writeText(principal.toString());
+    }
   };
 
   return (
@@ -20,7 +27,17 @@ const Header: React.FC = () => {
           IC Box
         </Typography>
         {isAuthenticated && (
-          <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Tooltip title="Copy your public ID">
+              <Box sx={{ display: 'flex', alignItems: 'center', mr: 2, cursor: 'pointer' }} onClick={handleCopyPrincipal}>
+                <Typography variant="body2" sx={{ mr: 1 }}>
+                  {principal ? Principal.fromText(principal.toString()).toText().slice(0, 10) + '...' : ''}
+                </Typography>
+                <IconButton color="inherit" size="small">
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            </Tooltip>
             <Button
               color="inherit"
               href="https://github.com/GEMS-Gallery/moccasin-literary-dinosaur-01917fe25c42"
