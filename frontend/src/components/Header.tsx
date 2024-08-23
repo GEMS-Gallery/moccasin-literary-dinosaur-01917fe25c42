@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { GitHub as GitHubIcon } from '@mui/icons-material';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,7 +21,12 @@ const Header: React.FC = () => {
         </Typography>
         {isAuthenticated && (
           <Box>
-            <Button color="inherit" href="https://github.com/GEMS-Gallery/moccasin-literary-dinosaur-01917fe25c42" target="_blank">
+            <Button
+              color="inherit"
+              href="https://github.com/GEMS-Gallery/moccasin-literary-dinosaur-01917fe25c42"
+              target="_blank"
+              startIcon={<GitHubIcon />}
+            >
               Show Code
             </Button>
             <Button color="inherit" onClick={handleLogout}>Logout</Button>
